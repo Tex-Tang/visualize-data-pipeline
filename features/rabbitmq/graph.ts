@@ -6,7 +6,7 @@ import { BindingNodeData, ConsumerNodeData, ExchangeNodeData, QueueNodeData } fr
 export type Patterns = RegExp[];
 
 function getPatternName(pattern: RegExp) {
-  return pattern.source.slice(1, -1);
+  return pattern.source;
 }
 
 export async function listExchangeNodes(): Promise<Node<ExchangeNodeData>[]> {
