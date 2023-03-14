@@ -15,6 +15,7 @@ import ReactFlow, {
   ConnectionLineType,
   Controls,
   Edge,
+  MarkerType,
   Node,
   OnConnect,
   OnEdgesChange,
@@ -142,6 +143,10 @@ export default function HomePage() {
         <ReactFlow
           nodes={nodes}
           edges={edges}
+          defaultEdgeOptions={{
+            markerEnd: { type: MarkerType.ArrowClosed, width: 30, height: 30 },
+            animated: true,
+          }}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           onNodesChange={onNodesChange}
