@@ -1,11 +1,95 @@
-import Head from 'next/head'
-import Image from 'next/image'
-import { Inter } from 'next/font/google'
-import styles from '@/styles/Home.module.css'
+import { Button } from "@/components/Button";
+import { Input } from "@/components/Input";
+import { edgeTypes, nodeTypes } from "@/features/rabbitmq";
+import { getGraph } from "@/features/rabbitmq/graph";
+import { getLayoutedElements } from "@/utils/react-flow";
+import { useQuery } from "@tanstack/react-query";
+import { isEqual } from "lodash";
+import Head from "next/head";
+import { useCallback, useEffect, useState } from "react";
+import ReactFlow, {
+  addEdge,
+  applyEdgeChanges,
+  applyNodeChanges,
+  Background,
+  ConnectionLineType,
+  Controls,
+  Edge,
+  Node,
+  OnConnect,
+  OnEdgesChange,
+  OnNodesChange,
+} from "reactflow";
+import "reactflow/dist/style.css";
+import { useLocalStorage } from "usehooks-ts";
 
-const inter = Inter({ subsets: ['latin'] })
+export default function HomePage() {
+  const [nodes, setNodes] = useLocalStorage<Node[]>("nodes", []);
+  const [edges, setEdges] = useLocalStorage<Edge[]>("edges", []);
 
-export default function Home() {
+  const [lastUpdated, setLastUpdated] = useState<Date>();
+  const [doNotUpdate, setDoNotUpdate] = useState<boolean>(false);
+  const [hideEmptyNodes, setHideEmptyNodes] = useLocalStorage<boolean>("hide-empty-nodes", false);
+
+  const [host, setHost] = useLocalStorage<string>("host", "");
+  const [username, setUsername] = useLocalStorage<string>("username", "");
+  const [password, setPassword] = useLocalStorage<string>("password", "");
+
+  const [pattern, setPattern] = useLocalStorage<string>("pattern", "");
+
+  const [connected, setConnected] = useState<boolean>(host && username && password ? true : false);
+
+  useQuery({
+    enabled: connected,
+    queryKey: ["graph"],
+    queryFn: () => getGraph(nodes, edges, pattern ? new RegExp(pattern) : undefined),
+    refetchInterval: 5 * 1000,
+    onSuccess: (data) => {
+      if (doNotUpdate) return;
+      // First time we get data, we need to layout the graph
+      if (nodes.length == 0 || edges.length == 0) {
+        const layouted = getLayoutedElements(data.nodes, data.edges);
+        setNodes(layouted.nodes);
+        setEdges(layouted.edges);
+      } else {
+        setNodes(data.nodes);
+        setEdges(data.edges);
+      }
+      setLastUpdated(new Date());
+    },
+  });
+
+  const onNodesChange: OnNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
+  const onEdgesChange: OnEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
+  const onConnect: OnConnect = useCallback(
+    (params) =>
+      setEdges((eds) => {
+        return addEdge(
+          {
+            ...params,
+            id: `custom-${params.source}-${params.target}`,
+          },
+          eds
+        );
+      }),
+    [setEdges]
+  );
+
+  useEffect(() => {
+    const edgeSet = new Set([...edges.map((e) => e.source), ...edges.map((e) => e.target)]);
+    const newNodes = nodes.map((n) => {
+      if (hideEmptyNodes && !edgeSet.has(n.id)) {
+        n.hidden = true;
+      } else {
+        n.hidden = false;
+      }
+      return n;
+    });
+    if (!isEqual(nodes, newNodes)) {
+      setNodes(newNodes);
+    }
+  }, [hideEmptyNodes, nodes, edges]);
+
   return (
     <>
       <Head>
@@ -14,110 +98,69 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main className={styles.main}>
-        <div className={styles.description}>
-          <p>
-            Get started by editing&nbsp;
-            <code className={styles.code}>pages/index.tsx</code>
-          </p>
-          <div>
-            <a
-              href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              By{' '}
-              <Image
-                src="/vercel.svg"
-                alt="Vercel Logo"
-                className={styles.vercelLogo}
-                width={100}
-                height={24}
-                priority
-              />
-            </a>
-          </div>
+
+      <div className="absolute left-0 top-0 p-4 z-50 flex flex-col gap-2">
+        <div className="flex flex-col gap-2">
+          <Input placeholder="Host" value={host} onChange={(e) => setHost(e.target.value)} />
+          <Input placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
+          <Input placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <Button
+            onClick={() => {
+              setConnected(true);
+            }}
+          >
+            Connect
+          </Button>
         </div>
+        <Button onClick={() => setHideEmptyNodes(!hideEmptyNodes)} className="cursor-pointer">
+          Toggle Hide Empty Node
+        </Button>
+        <Button
+          onClick={() => {
+            setNodes([]);
+            setEdges([]);
+          }}
+          className="cursor-pointer"
+        >
+          Reset
+        </Button>
 
-        <div className={styles.center}>
-          <Image
-            className={styles.logo}
-            src="/next.svg"
-            alt="Next.js Logo"
-            width={180}
-            height={37}
-            priority
-          />
-          <div className={styles.thirteen}>
-            <Image
-              src="/thirteen.svg"
-              alt="13"
-              width={40}
-              height={31}
-              priority
-            />
-          </div>
+        <Button
+          onClick={() => {
+            const layout = getLayoutedElements(nodes, edges);
+            setNodes(layout.nodes);
+            setEdges(layout.edges);
+          }}
+        >
+          Organize
+        </Button>
+
+        <Input placeholder="Pattern" value={pattern} onChange={(e) => setPattern(e.target.value)} />
+      </div>
+
+      <div className="fixed left-0 top-0 h-full w-full">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onClickConnectStart={() => setDoNotUpdate(true)}
+          onClickConnectEnd={() => setDoNotUpdate(false)}
+          onSelectionDragStart={() => setDoNotUpdate(true)}
+          onSelectionDragStop={() => setDoNotUpdate(false)}
+          onConnect={onConnect}
+          connectionLineType={ConnectionLineType.SmoothStep}
+          fitView
+        >
+          <Background />
+          <Controls />
+        </ReactFlow>
+        <div className="absolute right-0 top-0 p-1 pr-2">
+          {lastUpdated && <span className="font-mono text-sm">Last Updated: {lastUpdated.toISOString()}</span>}
         </div>
-
-        <div className={styles.grid}>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2 className={inter.className}>
-              Docs <span>-&gt;</span>
-            </h2>
-            <p className={inter.className}>
-              Find in-depth information about Next.js features and&nbsp;API.
-            </p>
-          </a>
-
-          <a
-            href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2 className={inter.className}>
-              Learn <span>-&gt;</span>
-            </h2>
-            <p className={inter.className}>
-              Learn about Next.js in an interactive course with&nbsp;quizzes!
-            </p>
-          </a>
-
-          <a
-            href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2 className={inter.className}>
-              Templates <span>-&gt;</span>
-            </h2>
-            <p className={inter.className}>
-              Discover and deploy boilerplate example Next.js&nbsp;projects.
-            </p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2 className={inter.className}>
-              Deploy <span>-&gt;</span>
-            </h2>
-            <p className={inter.className}>
-              Instantly deploy your Next.js site to a shareable URL
-              with&nbsp;Vercel.
-            </p>
-          </a>
-        </div>
-      </main>
+      </div>
     </>
-  )
+  );
 }
