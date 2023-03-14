@@ -1,4 +1,8 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Visualize Data Pipeline
+
+![Visualize Data Pipeline](./public/screenshot.png)
+
+Visualize your data pipeline with RabbitMQ and databases.
 
 ## Getting Started
 
