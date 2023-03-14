@@ -21,7 +21,6 @@ specifiers:
   react-flow: ^1.0.3
   react-interval: ^2.1.2
   reactflow: ^11.6.0
-  string-algorithms: ^1.0.31
   tailwind-merge: ^1.10.0
   tailwindcss: ^3.2.7
   typescript: 4.9.5
@@ -43,7 +42,6 @@ dependencies:
   react-flow: 1.0.3
   react-interval: 2.1.2_pmekkgnqduwlme35zpnqhenc34
   reactflow: 11.6.0_biqbaboplfbrettd7655fr4n2y
-  string-algorithms: 1.0.31
   tailwind-merge: 1.10.0
   typescript: 4.9.5
   usehooks-ts: 2.9.1_biqbaboplfbrettd7655fr4n2y
@@ -1193,10 +1191,6 @@ packages:
   /source-map-js/1.0.2:
     resolution: {integrity: sha512-R0XvVJ9WusLiqTCEiGCmICCMplcCkIwwR11mOSD9CR5u+IXYdiseeEuXCVAjS54zqwkLcPNnmU4OeJ6tUrWhDw==}
     engines: {node: '>=0.10.0'}
-
-  /string-algorithms/1.0.31:
-    resolution: {integrity: sha512-v+gdi7yfXsSGj2RU64AMR8LJyBnwpDSuJLsQxezu9ZgdYZF+g5vEGyuCeN47OoAObrEvt8VFKmj3NYCzXRBbnw==}
-    dev: false
 
   /styled-jsx/5.1.1_react@18.2.0:
     resolution: {integrity: sha512-pW7uC1l4mBZ8ugbiZrcIsiIvVx1UmTfw7UkC3Um2tmfUq9Bhk8IiyEIPl6F8agHgjzku6j0xQEZbfA5uSgSaCw==}
